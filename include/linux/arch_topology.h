@@ -57,6 +57,12 @@ static inline unsigned long topology_get_thermal_pressure(int cpu)
 	return per_cpu(thermal_pressure, cpu);
 }
 
+void topology_set_thermal_pressure(const struct cpumask *cpus,
+				   unsigned long th_pressure);
+
+void topology_update_thermal_pressure(const struct cpumask *cpus,
+				      unsigned long capped_freq);
+
 enum scale_freq_source {
 	SCALE_FREQ_SOURCE_CPUFREQ = 0,
 	SCALE_FREQ_SOURCE_ARCH,
@@ -78,6 +84,4 @@ bool topology_scale_freq_invariant(void);
 
 bool arch_freq_counters_available(const struct cpumask *cpus);
 
-void arch_set_thermal_pressure(struct cpumask *cpus,
-			       unsigned long th_pressure);
 #endif /* _LINUX_ARCH_TOPOLOGY_H_ */

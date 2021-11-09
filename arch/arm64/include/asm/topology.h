@@ -68,6 +68,8 @@ void update_freq_counters_refs(void);
 
 /* Replace task scheduler's default thermal pressure retrieve API */
 #define arch_scale_thermal_pressure topology_get_thermal_pressure
+#define arch_set_thermal_pressure   topology_set_thermal_pressure
+#define arch_update_thermal_pressure	topology_update_thermal_pressure
 
 #include <asm-generic/topology.h>
 
