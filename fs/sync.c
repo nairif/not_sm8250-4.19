@@ -19,6 +19,10 @@
 #include <linux/version.h>
 #include "internal.h"
 
+#ifdef CONFIG_E404_SIGNATURE
+#include <linux/e404_attributes.h>
+#endif
+
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
 
@@ -426,6 +430,11 @@ SYSCALL_DEFINE1(syncfs, int, fd)
 	struct super_block *sb;
 	int ret, ret2;
 
+#ifdef CONFIG_E404_SIGNATURE
+	if (!e404_data.file_sync)
+		return 0;
+#endif
+
 	if (!f.file)
 		return -EBADF;
 	sb = f.file->f_path.dentry->d_sb;
@@ -455,6 +464,11 @@ int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 {
 	struct inode *inode = file->f_mapping->host;
 
+#ifdef CONFIG_E404_SIGNATURE
+	if (!e404_data.file_sync)
+		return 0;
+#endif
+
 	if (!file->f_op->fsync)
 		return -EINVAL;
 	if (!datasync && (inode->i_state & I_DIRTY_TIME))
@@ -473,6 +487,10 @@ EXPORT_SYMBOL(vfs_fsync_range);
  */
 int vfs_fsync(struct file *file, int datasync)
 {
+#ifdef CONFIG_E404_SIGNATURE
+	if (!e404_data.file_sync)
+		return 0;
+#endif
 	return vfs_fsync_range(file, 0, LLONG_MAX, datasync);
 }
 EXPORT_SYMBOL(vfs_fsync);
@@ -505,6 +523,11 @@ static int do_fsync(unsigned int fd, int datasync)
 	int ret = -EBADF;
 	unsigned long stamp = jiffies;
 
+#ifdef CONFIG_E404_SIGNATURE
+	if (!e404_data.file_sync)
+		return 0;
+#endif
+
 	if (f.file) {
 		ret = vfs_fsync(f.file, datasync);
 		fdput(f);
@@ -516,11 +539,19 @@ static int do_fsync(unsigned int fd, int datasync)
 
 SYSCALL_DEFINE1(fsync, unsigned int, fd)
 {
+#ifdef CONFIG_E404_SIGNATURE
+	if (!e404_data.file_sync)
+		return 0;
+#endif
 	return do_fsync(fd, 0);
 }
 
 SYSCALL_DEFINE1(fdatasync, unsigned int, fd)
 {
+#ifdef CONFIG_E404_SIGNATURE
+	if (!e404_data.file_sync)
+		return 0;
+#endif
 	return do_fsync(fd, 1);
 }
 
@@ -579,6 +610,11 @@ int ksys_sync_file_range(int fd, loff_t offset, loff_t nbytes,
 	struct address_space *mapping;
 	loff_t endbyte;			/* inclusive */
 	umode_t i_mode;
+
+#ifdef CONFIG_E404_SIGNATURE
+	if (!e404_data.file_sync)
+		return 0;
+#endif
 
 	ret = -EINVAL;
 	if (flags & ~VALID_FLAGS)
