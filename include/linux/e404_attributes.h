@@ -9,6 +9,7 @@
 
 struct e404_attributes {
     int kgsl_skip_zeroing;
+    int file_sync;
 };
 
 extern struct e404_attributes e404_data;
