@@ -6459,6 +6459,9 @@ static void hrtick_update(struct rq *rq)
 	if (hrtick_active(rq))
 		return;
 
+	if (hrtick_active(rq))
+		return;
+
 	hrtick_start_fair(rq, curr);
 }
 #else /* !CONFIG_SCHED_HRTICK */
