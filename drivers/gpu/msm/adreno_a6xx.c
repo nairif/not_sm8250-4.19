@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
  * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
@@ -2665,7 +2664,8 @@ static int a6xx_perfcounter_update(struct adreno_device *adreno_dev,
 	struct cpu_gpu_lock *lock = ptr;
 	u32 *data = ptr + sizeof(*lock);
 	int i, offset = 0;
-	u32 pending_pairs = 2; /* No of pairs to add: <select,value> and <cntl,1> */
+	/* No of pairs to add: <reg,val> */
+	u32 pending_pairs = adreno_is_a612(adreno_dev) ? 2 : 1;
 
 	if (cpu_gpu_lock(lock)) {
 		cpu_gpu_unlock(lock);
@@ -2688,8 +2688,10 @@ static int a6xx_perfcounter_update(struct adreno_device *adreno_dev,
 
 	/* Ensure there is enough space in the reglist buffer for new pairs */
 	if ((offset + (pending_pairs * 2)) >=
-		(adreno_dev->pwrup_reglist->size / sizeof(u32)))
+		(adreno_dev->pwrup_reglist.size / sizeof(u32))) {
+		cpu_gpu_unlock(lock);
 		return -ENOSPC;
+	}
 
 	/*
 	 * For a612 targets A6XX_RBBM_PERFCTR_CNTL needs to be the last entry,
@@ -2700,7 +2702,7 @@ static int a6xx_perfcounter_update(struct adreno_device *adreno_dev,
 		data[offset - 2] = reg->select;
 		data[offset - 1] = reg->countable;
 
-		data[offset] = A6XX_RBBM_PERFCTR_CNTL,
+		data[offset] = A6XX_RBBM_PERFCTR_CNTL;
 		data[offset + 1] = 1;
 	} else {
 		data[offset] = reg->select;
