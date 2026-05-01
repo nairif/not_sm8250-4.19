@@ -17,11 +17,11 @@ static int __init parse_aosp(char *str)
 }
 __setup("android.is_aosp=", parse_aosp);
 
-bool is_uos __read_mostly = false;
+bool is_uos __read_mostly = true;
 static int __init parse_uos(char *str)
 {
-	if (!strncmp(str, "1", 1))
-		is_uos = true;
+	if (!strncmp(str, "0", 1))
+		is_uos = false;
 
 	return 0;
 }
