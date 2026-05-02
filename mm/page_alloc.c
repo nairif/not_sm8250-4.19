@@ -76,8 +76,6 @@
 #include <asm/div64.h>
 #include "internal.h"
 
-atomic_long_t kswapd_waiters = ATOMIC_LONG_INIT(0);
-
 /* prevent >1 _updater_ of zone percpu pageset ->high and ->batch fields */
 static DEFINE_MUTEX(pcp_batch_high_lock);
 #define MIN_PERCPU_PAGELIST_FRACTION	(8)
@@ -4714,8 +4712,12 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	unsigned int cpuset_mems_cookie;
 	unsigned int zonelist_iter_cookie;
 	int reserve_flags;
-	bool woke_kswapd = false;
-	bool used_vmpressure = false;
+	unsigned long pages_reclaimed = 0;
+	int retry_loop_count = 0;
+	unsigned long jiffies_s = jiffies;
+	u64 utime, stime_s, stime_e, stime_d;
+
+	task_cputime(current, &utime, &stime_s);
 
 	/*
 	 * We also sanity check to catch abuse of atomic reserves being used by
@@ -4751,15 +4753,8 @@ restart:
 	if (!ac->preferred_zoneref->zone)
 		goto nopage;
 
-	if (alloc_flags & ALLOC_KSWAPD) {
-		if (!woke_kswapd) {
-			atomic_long_inc(&kswapd_waiters);
-			woke_kswapd = true;
-		}
-		if (!used_vmpressure)
-			used_vmpressure = vmpressure_inc_users(order);
+	if (alloc_flags & ALLOC_KSWAPD)
 		wake_all_kswapds(order, gfp_mask, ac);
-	}
 
 	/*
 	 * The adjusted alloc_flags might result in immediate success, so try
@@ -4815,6 +4810,7 @@ restart:
 	}
 
 retry:
+	retry_loop_count++;
 	/*
 	 * Deal with possible cpuset update races or zonelist updates to avoid
 	 * infinite retries.
@@ -4860,10 +4856,9 @@ retry:
 		goto nopage;
 
 	/* Try direct reclaim and then allocating */
-	if (!used_vmpressure)
-		used_vmpressure = vmpressure_inc_users(order);
 	page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac,
 							&did_some_progress);
+	pages_reclaimed += did_some_progress;
 	if (page)
 		goto got_pg;
 
@@ -4922,10 +4917,8 @@ retry:
 	/* Avoid allocations with no watermarks from looping endlessly */
 	if (tsk_is_oom_victim(current) &&
 	    (alloc_flags == ALLOC_OOM ||
-	     (gfp_mask & __GFP_NOMEMALLOC))) {
-		gfp_mask |= __GFP_NOWARN;
+	     (gfp_mask & __GFP_NOMEMALLOC)))
 		goto nopage;
-	}
 
 	/* Retry as long as the OOM killer is making progress */
 	if (did_some_progress) {
@@ -4983,14 +4976,32 @@ nopage:
 		goto retry;
 	}
 fail:
+	warn_alloc(gfp_mask, ac->nodemask,
+			"page allocation failure: order:%u", order);
 got_pg:
-	if (woke_kswapd)
-		atomic_long_dec(&kswapd_waiters);
-	if (used_vmpressure)
-		vmpressure_dec_users();
-	if (!page)
-		warn_alloc(gfp_mask, ac->nodemask,
-				"page allocation failure: order:%u", order);
+	task_cputime(current, &utime, &stime_e);
+	stime_d = stime_e - stime_s;
+	if (stime_d / NSEC_PER_MSEC > 256) {
+		pg_data_t *pgdat;
+
+		unsigned long a_anon = 0;
+		unsigned long in_anon = 0;
+		unsigned long a_file = 0;
+		unsigned long in_file = 0;
+		for_each_online_pgdat(pgdat) {
+			a_anon += node_page_state(pgdat, NR_ACTIVE_ANON);
+			in_anon += node_page_state(pgdat, NR_INACTIVE_ANON);
+			a_file += node_page_state(pgdat, NR_ACTIVE_FILE);
+			in_file += node_page_state(pgdat, NR_INACTIVE_FILE);
+		}
+		pr_info("alloc stall: timeJS(ms):%u|%llu rec:%lu|%lu ret:%d o:%d gfp:%#x(%pGg) AaiFai:%lukB|%lukB|%lukB|%lukB\n",
+			jiffies_to_msecs(jiffies - jiffies_s),
+			stime_d / NSEC_PER_MSEC,
+			did_some_progress, pages_reclaimed, retry_loop_count,
+			order, gfp_mask, &gfp_mask,
+			a_anon << (PAGE_SHIFT-10), in_anon << (PAGE_SHIFT-10),
+			a_file << (PAGE_SHIFT-10), in_file << (PAGE_SHIFT-10));
+	}
 	return page;
 }
 
