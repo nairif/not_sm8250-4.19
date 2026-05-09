@@ -636,51 +636,11 @@ static void sugov_exit(struct cpufreq_policy *policy)
 	cpufreq_disable_fast_switch(policy);
 }
 
-static void sugov_set_max_freq(struct cpufreq_policy *policy)
-{
-	struct sugov_policy *sg_policy = policy->governor_data;
-	unsigned int cpu = cpumask_first(policy->cpus);
-	unsigned int max_freq;
-	
-	/*
-	 * I am setting max_freq equal to the frequencies
-	 * that were marked as "// eff" on kona.dtsi.
-	 * Should improve SoT w/o affecting performance
-	 * too much (sm8250 is strong)
-	 */
-
-	if (cpu == 7)                    // prime
-		max_freq = 2553600;
-	else if (cpu >= 4 && cpu <= 6)   // big
-		max_freq = 2246400;
-	else                             // little
-		max_freq = 1708800;
-
-	/* Apply the cap (only if lower than current max) */
-	if (max_freq < policy->cpuinfo.max_freq) {
-		policy->max = max_freq;
-		
-		if (!policy->fast_switch_enabled)
-			mutex_lock(&sg_policy->work_lock);
-
-		cpufreq_policy_apply_limits(policy);
-
-		if (!policy->fast_switch_enabled)
-			mutex_unlock(&sg_policy->work_lock);
-
-		pr_info("schedutil-b: capped policy%d (cpu%d) max_freq to %u kHz\n",
-			policy->cpu, cpu, max_freq);
-	}
-}
-
 static int sugov_start(struct cpufreq_policy *policy)
 {
 	struct sugov_policy *sg_policy = policy->governor_data;
 	void (*uu)(struct update_util_data *data, u64 time, unsigned int flags);
 	unsigned int cpu;
-
-	/* Apply max frequency caps when governor starts */
-	sugov_set_max_freq(policy);
 
 	sg_policy->freq_update_delay_ns	= sg_policy->tunables->rate_limit_us * NSEC_PER_USEC;
 	sg_policy->last_freq_update_time	= 0;
