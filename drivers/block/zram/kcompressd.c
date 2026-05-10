@@ -312,8 +312,8 @@ int schedule_bio_write(void *mem, struct bio *bio, compress_callback cb)
 			(sz_work == kfifo_in(&kcompress[idx].write_fifo, &entry, sz_work));
 
 		if (submit_success) {
-			if (atomic_read(&kcompress[idx].running) == KCOMPRESSD_NOT_STARTED) {
-				atomic_set(&kcompress[idx].running, KCOMPRESSD_RUNNING);
+			if (atomic_cmpxchg(&kcompress[idx].running, KCOMPRESSD_NOT_STARTED,
+					   KCOMPRESSD_RUNNING) == KCOMPRESSD_NOT_STARTED) {
 				kcompress[idx].kcompressd = kthread_run(kcompressd,
 						&kcompressd_para[idx], "kcompressd:%d", idx);
 				if (IS_ERR(kcompress[idx].kcompressd)) {
