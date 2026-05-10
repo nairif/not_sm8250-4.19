@@ -604,7 +604,11 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 
 	*freq = stats->current_frequency;
 	priv->bin.total_time += stats->total_time;
-	priv->bin.busy_time += stats->busy_time;
+	if ((unsigned int)(priv->bin.busy_time + stats->busy_time) >= MIN_BUSY) {
+		priv->bin.busy_time += stats->busy_time * 3;
+	} else {
+		priv->bin.busy_time += stats->busy_time;
+	}
 
 	if (stats->private_data)
 		context_count =  *((int *)stats->private_data);
