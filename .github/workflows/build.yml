@@ -107,7 +107,7 @@ jobs:
          echo "zip_file=$zip" >> $GITHUB_ENV
 
       - name: Set release tag
-        run: echo "RELEASE_TAG=kernel-${DEVICE}-$(date +'%Y%m%d-%H%M')" >> $GITHUB_ENV
+        run: echo "RELEASE_TAG=${DEVICE}-$(date +'%Y%m%d')" >> $GITHUB_ENV
 
       - name: Prepare Release Info
         run: |
