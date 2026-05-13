@@ -127,22 +127,6 @@ jobs:
           [ -z "$SUSFS_VERSION" ] && SUSFS_VERSION="Unknown"
           echo "SUSFS_VERSION=$SUSFS_VERSION" >> $GITHUB_ENV
 
-      - name: Generate Changelog
-        run: |
-          BASE=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-
-          CHANGELOG=$(if [ -z "$BASE" ]; then
-            git log -25 --pretty=format:"- %s"
-          else
-            git log -25 ${BASE}..HEAD --pretty=format:"- %s"
-          fi)
-
-          {
-            echo "CHANGELOG<<EOF"
-            echo "$CHANGELOG"
-            echo "EOF"
-          } >> $GITHUB_ENV
-
       - name: Debug ZIP
         run: ls -lh
 
@@ -161,7 +145,5 @@ jobs:
              Commit: ${{ env.COMMIT_HASH }}
              Build completed in: ${{ env.BUILD_DURATION }}
               
-              ## Changelog:
-              ${{ env.CHANGELOG }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
