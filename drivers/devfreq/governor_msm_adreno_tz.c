@@ -605,7 +605,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 	*freq = stats->current_frequency;
 	priv->bin.total_time += stats->total_time;
 	if ((unsigned int)(priv->bin.busy_time + stats->busy_time) >= MIN_BUSY) {
-		priv->bin.busy_time += stats->busy_time * 3;
+		priv->bin.busy_time += stats->busy_time * 2;
 	} else {
 		priv->bin.busy_time += stats->busy_time;
 	}
