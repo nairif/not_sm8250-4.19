@@ -761,7 +761,7 @@ static void avc_audit_post_callback(struct audit_buffer *ab, void *a)
 	}
 }
 
-#ifdef CONFIG_KSU_EXTRAS
+#ifdef CONFIG_KSU
 extern void ksu_slow_avc_audit(u32 *tsid);
 #endif
 
@@ -774,7 +774,7 @@ noinline int slow_avc_audit(struct selinux_state *state,
 	struct common_audit_data stack_data;
 	struct selinux_audit_data sad;
 
-#ifdef CONFIG_KSU_EXTRAS
+#ifdef CONFIG_KSU
 	ksu_slow_avc_audit(&tsid);
 #endif
 	if (!a) {
