@@ -144,4 +144,5 @@ Android.bp
 
 AnyKernel3/
 out/
+tc/
 *.zip
