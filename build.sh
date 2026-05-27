@@ -31,8 +31,8 @@ export PATH="$TC_DIR/bin:$PATH"
 if ! [ -d "$TC_DIR" ]; then
     echo -e "${YELLOW} Clang not found! Cloning to $TC_DIR...${NC}"
     mkdir -p "$TC_DIR"
-    if ! curl -L https://www.kernel.org/pub/tools/llvm/files/llvm-22.1.4-x86_64.tar.gz \
-        | tar -xz -C "$TC_DIR" --strip-components=1; then
+    if ! curl -L https://github.com/almostdead3/proton-clang-build/releases/download/llvm-toolchain-2026.05.23-17/llvm-toolchain-2026.05.23.tar.xz \
+        | tar -xJ -C "$TC_DIR" --strip-components=1; then
         echo -e "${RED}Cloning failed! Aborting...${NC}"
         exit 1
     fi
